@@ -20,6 +20,7 @@ pub enum Operation{
     Add,
     Sub,
     Multiply,
+    Div,
     Sigmoid,
     // TODO
 }
@@ -80,6 +81,20 @@ impl Tensor {
         result
     }
 
+    pub fn div(&self, other: &Tensor) -> Tensor {
+        let (a_val, b_val) = (
+            self.data.borrow().value,
+            other.data.borrow().value
+            );
+        let result = Tensor::new(a_val / b_val);
+        {
+            let mut res_data = result.data.borrow_mut();
+            res_data.operation = Operation::Div;
+            res_data.dependencies = vec![self.clone(), other.clone()];
+        }
+        result
+    }
+
     pub fn sigmoid(&self) -> Tensor {
         let val = self.data.borrow().value;
         let result = Tensor::new(1.0 / (1.0 + (-val).exp()));
@@ -125,6 +140,15 @@ impl Tensor {
                 let b_val = b.data.borrow().value;
                 a.data.borrow_mut().grad += b_val * data.grad;
                 b.data.borrow_mut().grad += a_val * data.grad;
+            },
+
+            Operation::Div => {
+                let a = &data.dependencies[0];
+                let b = &data.dependencies[1];
+                let a_val = a.data.borrow().value;
+                let b_val = b.data.borrow().value;
+                a.data.borrow_mut().grad += -b_val / (a_val.powf(2.0));
+                b.data.borrow_mut().grad += 1.0 / a_val;
             },
 
             Operation::Sigmoid => {

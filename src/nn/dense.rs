@@ -1,12 +1,13 @@
 use crate::tensor::Tensor;
+use super::Layer;
 
 pub struct DenseLayer {
     pub weights: Vec<Vec<Tensor>>,
     pub bias: Tensor,
 }
 
-impl DenseLayer {
-    pub fn new(input_size: usize, output_size: usize) -> Self {
+impl Layer for DenseLayer {
+    fn new(input_size: usize, output_size: usize) -> Self {
         let mut weights = Vec::with_capacity(output_size);
         for _ in 0..output_size {
             let mut w = Vec::with_capacity(input_size);
@@ -23,7 +24,19 @@ impl DenseLayer {
         }
     }
 
-    pub fn forward(&self, inputs: &[Tensor]) -> Vec<Tensor> {
+    fn parameters(&self) -> Vec<&Tensor> {
+        let mut params = Vec::new();
+        for row in &self.weights{
+            for weight in row{
+                params.push(weight);
+            }
+        }
+        params.push(&self.bias);
+
+        params
+    }
+
+    fn forward(&self, inputs: &[Tensor]) -> Vec<Tensor> {
         let mut outputs = Vec::new();
         for w in &self.weights {
             let mut sum = self.bias.clone();
