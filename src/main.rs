@@ -28,7 +28,7 @@ fn test_XOR(){
     let loss_fn = mse_loss;
     let optimizer = SGD::new(0.00001);
 
-    for _ in 0..100000 {
+    for _ in 0..1000000 {
         for (i, input) in inputs.iter().enumerate() {
             optimizer.zero_grad(&layer.parameters());
             let outputs = layer.forward(input);
@@ -44,18 +44,12 @@ fn test_XOR(){
         let loss = loss_fn(&outputs, &targets[i]);
         loss.backward();
         optimizer.step(&layer.parameters());
-        println!("Updated output: {:.4}", outputs[0].data.borrow().value);
+        println!("Updated output: {:?}", outputs[0].data.borrow().value);
     }
 }
 
 
 fn main() {
     test_XOR();
-    let a = Tensor::from_array(ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]).unwrap());
-    let b = Tensor::from_array(ArrayD::from_shape_vec(IxDyn(&[3, 2]), vec![0.5, 0.6, 0.7, 0.8, 0.9, 1.0]).unwrap());
-
-    let c = a.matmul(&b);
-
-    println!("Result:\n {:?}", c.data.borrow().value);
 
 }
