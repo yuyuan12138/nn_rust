@@ -14,7 +14,7 @@ fn main() {
     let x1 = Tensor::new(1.0);
     let x2 = Tensor::new(0.0);
 
-    let layer = nn::dense::DenseLayer::new(2, 1);
+    let layer = nn::layer::Linear::new(2, 1);
     let input_1 = vec![x1.clone(), x1.clone()];
     let input_2 = vec![x1.clone(), x2.clone()];
     let input_3 = vec![x2.clone(), x1.clone()];
@@ -25,9 +25,9 @@ fn main() {
     let targets = [[x2.clone()], [x1.clone()], [x2.clone()], [x1.clone()]];
 
     let loss_fn = mse_loss;
-    let optimizer = SGD::new(3.0);
+    let optimizer = SGD::new(0.01);
 
-    for _ in 0..100 {
+    for _ in 0..1000 {
         for (i, input) in inputs.iter().enumerate() {
             optimizer.zero_grad(&layer.parameters());
             let outputs = layer.forward(input);

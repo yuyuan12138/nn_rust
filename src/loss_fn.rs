@@ -11,3 +11,7 @@ pub fn mse_loss(prediction: &[Tensor], targets: &[Tensor]) -> Tensor {
     }
     total_loss.multiply(&Tensor::new(1.0 / n))
 }
+
+pub fn cross_entropy_loss(prediction: &[Tensor], targets: &[Tensor]) -> Tensor{
+    todo!()
+}
