@@ -37,10 +37,12 @@ impl Layer for Parameter1D {
 
     fn forward(&self, inputs: &[Tensor]) -> Vec<Tensor> {
         let mut outputs = Vec::new();
-        let mut sum = self.bias.clone();
+
 
         for (i, input) in inputs.iter().enumerate() {
+            let mut sum = self.bias.clone();
             sum = sum.add(&input.multiply(&self.weights[i]));
+            outputs.push(sum);
         }
 
         outputs

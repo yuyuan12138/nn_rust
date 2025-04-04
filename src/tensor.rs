@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use ndarray::{Array, ArrayD, IxDyn};
+use ndarray::{ArrayD, IxDyn};
 
 #[derive(Clone)]
 pub struct Tensor {
@@ -159,6 +159,38 @@ impl Tensor {
         result
     }
 
+    pub fn matmul(&self, other: &Tensor) -> Tensor {
+        let a_data = self.data.borrow();
+        let b_data = other.data.borrow();
+        let a_val = &a_data.value;
+        let b_val = &b_data.value;
+        assert!(
+            a_val.shape().len() >= 2 && b_val.shape().len() >= 2,
+            "Must >= 2 dims"
+        );
+        assert_eq!(
+            a_val.shape()[a_val.ndim() - 1],
+            b_val.shape()[b_val.ndim() - 2],
+            "dim does not match: {:?} vs {:?}",
+            a_val.shape(),
+            b_val.shape(),
+        );
+
+        let a_2d = a_val.clone().into_dimensionality::<ndarray::Ix2>().unwrap();
+        let b_2d = b_val.clone().into_dimensionality::<ndarray::Ix2>().unwrap();
+
+        let result_val = a_2d.dot(&b_2d).into_dyn();
+        let result = Tensor::from_array(result_val);
+        {
+            let mut res_data = result.data.borrow_mut();
+            res_data.operation = Operation::Matmul;
+            res_data.dependencies = vec![self.clone(), other.clone()];
+        }
+
+        result
+
+    }
+
     pub fn sigmoid(&self) -> Tensor {
         let a_data = self.data.borrow();
 
@@ -179,9 +211,28 @@ impl Tensor {
     pub fn backward(&self) {
         {
             let mut data = self.data.borrow_mut();
-            data.grad = ArrayD::from_elem(IxDyn(&[]), 1.0);
+            data.grad = ArrayD::ones(data.value.shape());
         }
-        self._backward();
+        let mut nodes = Vec::new();
+        let mut visited = std::collections::HashSet::new();
+        self._build_topo(&mut nodes, &mut visited);
+        for node in nodes.iter().rev() {
+            node._backward();
+        }
+    }
+
+    fn _build_topo(&self, nodes: &mut Vec<Tensor>, visited: &mut std::collections::HashSet<*const NodeData>){
+        let ptr = self.data.as_ptr() as *const NodeData;
+        if visited.contains(&ptr){
+            return ;
+        }
+        visited.insert(ptr);
+
+        for dep in &self.data.borrow().dependencies {
+            dep._build_topo(nodes, visited);
+        }
+
+        nodes.push(self.clone());
     }
 
     fn _backward(&self){
@@ -246,6 +297,33 @@ impl Tensor {
 
                 a.data.borrow_mut().grad += &a_grad;
                 b.data.borrow_mut().grad += &b_grad;
+            },
+
+            Operation::Matmul => {
+                let a = &data.dependencies[0];
+                let b = &data.dependencies[1];
+                let grad = &data.grad;
+
+                let (a_val, b_val) = {
+                    let a_data = a.data.borrow();
+                    let b_data = b.data.borrow();
+                    (a_data.value.clone(), b_data.value.clone())
+                };
+                let a_2d = a_val.clone().into_dimensionality::<ndarray::Ix2>().unwrap();
+                let b_2d = b_val.clone().into_dimensionality::<ndarray::Ix2>().unwrap();
+                let grad_2d = grad.clone().into_dimensionality::<ndarray::Ix2>().unwrap();
+
+                let a_grad = grad_2d.dot(&b_2d.t());
+                let b_grad = a_2d.t().dot(&grad_2d);
+
+                {
+                    let mut a_data = a.data.borrow_mut();
+                    a_data.grad += &a_grad;
+                }
+                {
+                    let mut b_data = b.data.borrow_mut();
+                    b_data.grad += &b_grad;
+                }
             },
 
             Operation::Sigmoid => {
