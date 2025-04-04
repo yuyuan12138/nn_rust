@@ -1,3 +1,4 @@
+use ndarray::ArrayD;
 use crate::tensor::Tensor;
 use super::Optimizer;
 
@@ -15,14 +16,15 @@ impl Optimizer for SGD {
     fn step(&self, params: &[&Tensor]) {
         for param in params {
             let mut data = param.data.borrow_mut();
-            data.value -= self.lr * data.grad;
+
+            data.value = &data.value - &(self.lr * &data.grad);
         }
     }
 
     fn zero_grad(&self, params: &[&Tensor]) {
         for param in params {
             let mut data = param.data.borrow_mut();
-            data.grad = 0.0;
+            data.grad = ArrayD::zeros(data.grad.shape());
         }
     }
 }

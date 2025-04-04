@@ -16,12 +16,12 @@ impl Layer for Parameter1D {
         assert_eq!(input_size, output_size, "input_size and output_size must be the same in Parameter1D.");
         let mut weights = Vec::with_capacity(output_size);
         for _ in 0..output_size{
-            weights.push(Tensor::new(rand::random::<f64>() * 0.1));
+            weights.push(Tensor::scalar(rand::random::<f64>() * 0.1));
         }
 
         Parameter1D{
             weights,
-            bias: Tensor::new(rand::random::<f64>() * 0.1),
+            bias: Tensor::scalar(rand::random::<f64>() * 0.1),
         }
     }
 
@@ -53,14 +53,14 @@ impl Layer for Parameter2D {
         for _ in 0..output_size {
             let mut w = Vec::with_capacity(input_size);
             for _ in 0..input_size {
-                w.push(Tensor::new(rand::random::<f64>() * 0.1));
+                w.push(Tensor::scalar(rand::random::<f64>() * 0.1));
             }
             weights.push(w);
         }
 
         Parameter2D{
             weights,
-            bias: Tensor::new(rand::random::<f64>() * 0.1),
+            bias: Tensor::scalar(rand::random::<f64>() * 0.1),
         }
     }
 

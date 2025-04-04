@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use ndarray::{Array, ArrayD, IxDyn};
 
 #[derive(Clone)]
 pub struct Tensor {
@@ -8,8 +9,8 @@ pub struct Tensor {
 
 
 pub struct NodeData{
-    pub value: f64,
-    pub grad: f64,
+    pub value: ArrayD<f64>,
+    pub grad: ArrayD<f64>,
     pub operation: Operation,
     pub dependencies: Vec<Tensor>,
 }
@@ -21,16 +22,30 @@ pub enum Operation{
     Sub,
     Multiply,
     Div,
+    Matmul,
     Sigmoid,
     // TODO
 }
 
 impl Tensor {
-    pub fn new(value: f64) -> Self {
+
+    pub fn scalar(value: f64) -> Self {
+
         Tensor {
             data: Rc::new(RefCell::new(NodeData {
-                value,
-                grad: 0.0,
+                value: ArrayD::from_elem(IxDyn(&[]), value),
+                grad: ArrayD::zeros(IxDyn(&[])),
+                operation: Operation::None,
+                dependencies: vec![],
+            })),
+        }
+    }
+
+    pub fn from_array(arr: ArrayD<f64>) -> Self {
+        Tensor {
+            data: Rc::new(RefCell::new(NodeData {
+                value: arr,
+                grad: ArrayD::zeros(IxDyn(&[])),
                 operation: Operation::None,
                 dependencies: vec![],
             })),
@@ -38,25 +53,52 @@ impl Tensor {
     }
 
     pub fn add(&self, other: &Tensor) -> Tensor{
-        let (a_val, b_val) = (
-            self.data.borrow().value,
-            other.data.borrow().value
-            );
-        let result = Tensor::new(a_val + b_val);
+        let a_data = self.data.borrow();
+        let b_data = other.data.borrow();
+        let a_val = &a_data.value;
+        let b_val = &b_data.value;
+
+        assert!(
+            a_val.shape() == b_val.shape() ||
+            a_val.ndim() == 0 ||
+            b_val.ndim() == 0,
+            "Shape does not match: {:?} vs {:?}",
+            a_val.shape(),
+            b_val.shape()
+        );
+
+        let result_val = a_val + b_val;
+        let result = Tensor::from_array(result_val);
+
         {
             let mut res_data = result.data.borrow_mut();
             res_data.operation = Operation::Add;
             res_data.dependencies = vec![self.clone(), other.clone()];
         }
+
         result
+
+
     }
 
     pub fn sub(&self, other: &Tensor) -> Tensor {
-        let (a_val, b_val) = (
-            self.data.borrow().value,
-            other.data.borrow().value
-            );
-        let result = Tensor::new(a_val - b_val);
+        let a_data = self.data.borrow();
+        let b_data = other.data.borrow();
+        let a_val = &a_data.value;
+        let b_val = &b_data.value;
+
+        assert!(
+            a_val.shape() == b_val.shape() ||
+                a_val.ndim() == 0 ||
+                b_val.ndim() == 0,
+            "Shape does not match: {:?} vs {:?}",
+            a_val.shape(),
+            b_val.shape()
+        );
+
+        let result_val = a_val - b_val;
+        let result = Tensor::from_array(result_val);
+
         {
             let mut res_data = result.data.borrow_mut();
             res_data.operation = Operation::Sub;
@@ -67,11 +109,22 @@ impl Tensor {
     }
 
     pub fn multiply(&self, other: &Tensor) -> Tensor {
-        let (a_val, b_val) = (
-            self.data.borrow().value,
-            other.data.borrow().value
-            );
-        let result = Tensor::new(a_val * b_val);
+
+        let a_data = self.data.borrow();
+        let b_data = other.data.borrow();
+        let a_val = &a_data.value;
+        let b_val = &b_data.value;
+
+        assert!(
+            a_val.shape() == b_val.shape() ||
+                a_val.ndim() == 0 ||
+                b_val.ndim() == 0,
+            "Shape does not match: {:?} vs {:?}",
+            a_val.shape(),
+            b_val.shape()
+        );
+        let result_val = a_val * b_val;
+        let result = Tensor::from_array(result_val);
 
         {
             let mut res_data = result.data.borrow_mut();
@@ -82,11 +135,22 @@ impl Tensor {
     }
 
     pub fn div(&self, other: &Tensor) -> Tensor {
-        let (a_val, b_val) = (
-            self.data.borrow().value,
-            other.data.borrow().value
-            );
-        let result = Tensor::new(a_val / b_val);
+        let a_data = self.data.borrow();
+        let b_data = other.data.borrow();
+        let a_val = &a_data.value;
+        let b_val = &b_data.value;
+
+        assert!(
+            a_val.shape() == b_val.shape() ||
+                a_val.ndim() == 0 ||
+                b_val.ndim() == 0,
+            "Shape does not match: {:?} vs {:?}",
+            a_val.shape(),
+            b_val.shape()
+        );
+
+        let result_val = a_val / b_val;
+        let result = Tensor::from_array(result_val);
         {
             let mut res_data = result.data.borrow_mut();
             res_data.operation = Operation::Div;
@@ -96,8 +160,12 @@ impl Tensor {
     }
 
     pub fn sigmoid(&self) -> Tensor {
-        let val = self.data.borrow().value;
-        let result = Tensor::new(1.0 / (1.0 + (-val).exp()));
+        let a_data = self.data.borrow();
+
+        let a_val = &a_data.value;
+
+        let result_val = 1.0 / (1.0 + (-a_val).exp());
+        let result = Tensor::from_array(result_val);
 
         {
             let mut res_data = result.data.borrow_mut();
@@ -111,7 +179,7 @@ impl Tensor {
     pub fn backward(&self) {
         {
             let mut data = self.data.borrow_mut();
-            data.grad = 1.0;
+            data.grad = ArrayD::from_elem(IxDyn(&[]), 1.0);
         }
         self._backward();
     }
@@ -122,39 +190,75 @@ impl Tensor {
             Operation::Add => {
                 let a = &data.dependencies[0];
                 let b = &data.dependencies[1];
-                a.data.borrow_mut().grad += data.grad;
-                b.data.borrow_mut().grad += data.grad;
+                let grad = &data.grad;
+
+                let a_grad = grad.clone();
+                let b_grad = grad.clone();
+                a.data.borrow_mut().grad += &a_grad;
+                b.data.borrow_mut().grad += &b_grad;
             },
 
             Operation::Sub => {
                 let a = &data.dependencies[0];
                 let b = &data.dependencies[1];
-                a.data.borrow_mut().grad += data.grad;
-                b.data.borrow_mut().grad -= data.grad;
+                let grad = &data.grad;
+
+                let a_grad = grad.clone();
+                let b_grad = grad.clone();
+
+                a.data.borrow_mut().grad += &a_grad;
+                b.data.borrow_mut().grad -= &b_grad;
             }
 
             Operation::Multiply => {
                 let a = &data.dependencies[0];
                 let b = &data.dependencies[1];
-                let a_val = a.data.borrow().value;
-                let b_val = b.data.borrow().value;
-                a.data.borrow_mut().grad += b_val * data.grad;
-                b.data.borrow_mut().grad += a_val * data.grad;
+                let grad = &data.grad;
+                let (a_val, b_val) = {
+                    let a_data = a.data.borrow();
+                    let b_data = b.data.borrow();
+                    (a_data.value.clone(), b_data.value.clone())
+                };
+
+                let a_grad = grad * &b_val;
+                let b_grad = grad * &a_val;
+
+
+                a.data.borrow_mut().grad += &a_grad;
+                b.data.borrow_mut().grad += &b_grad;
             },
 
             Operation::Div => {
                 let a = &data.dependencies[0];
                 let b = &data.dependencies[1];
-                let a_val = a.data.borrow().value;
-                let b_val = b.data.borrow().value;
-                a.data.borrow_mut().grad += -b_val / (a_val.powf(2.0));
-                b.data.borrow_mut().grad += 1.0 / a_val;
+                let grad = &data.grad;
+
+                let (a_val, b_val) = {
+                    let a_data = a.data.borrow();
+                    let b_data = b.data.borrow();
+                    (a_data.value.clone(), b_data.value.clone())
+                };
+
+
+                let a_grad = grad * (1.0 / &b_val);
+                let b_grad = grad * (&a_val / (&b_val.powf(2.0)));
+
+
+                a.data.borrow_mut().grad += &a_grad;
+                b.data.borrow_mut().grad += &b_grad;
             },
 
             Operation::Sigmoid => {
                 let x = &data.dependencies[0];
-                let s = data.value;
-                x.data.borrow_mut().grad += s * (1.0 - s) * data.grad;
+                let grad = &data.grad;
+                let val = {
+                    let x_data = x.data.borrow();
+                    x_data.value.clone()
+                };
+
+                let a_grad = grad * ((-val.exp()) / (1.0 + -val.exp()).powf(2.0));
+
+                x.data.borrow_mut().grad += &a_grad;
             }
 
             Operation::None => {}

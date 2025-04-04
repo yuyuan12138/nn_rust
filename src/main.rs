@@ -11,8 +11,8 @@ use optimizer::Optimizer;
 
 fn main() {
     // TODO: an example about XOR function. [1, 0] || [0, 1] -> 1 [0, 0] || [1, 1] -> 0; DONE !
-    let x1 = Tensor::new(1.0);
-    let x2 = Tensor::new(0.0);
+    let x1 = Tensor::scalar(1.0);
+    let x2 = Tensor::scalar(0.0);
 
     let layer = nn::layer::Linear::new(2, 1);
     let input_1 = vec![x1.clone(), x1.clone()];
