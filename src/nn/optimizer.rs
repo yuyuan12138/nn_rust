@@ -1,4 +1,3 @@
-use ndarray::ArrayD;
 use crate::tensor::{Tensor, TensorValue};
 use super::Optimizer;
 
@@ -31,8 +30,6 @@ impl Optimizer for SGD {
                     )
                 }
             };
-
-            // 执行参数更新
             data.value = data.value.sub(&update);
         }
     }
