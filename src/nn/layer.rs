@@ -18,7 +18,7 @@ impl Layer for Linear {
         self.params.parameters()
     }
 
-    fn forward(&self, inputs: &[Tensor]) -> Vec<Tensor> {
+    fn forward(&self, inputs: &Tensor) -> Tensor {
         self.params.forward(inputs)
     }
 }

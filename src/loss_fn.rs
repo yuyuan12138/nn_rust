@@ -1,15 +1,10 @@
 use crate::tensor::Tensor;
 
-pub fn mse_loss(prediction: &[Tensor], targets: &[Tensor]) -> Tensor {
-    assert_eq!(prediction.len(), targets.len(), "Predictions and targets must have the same length.");
-    let n = prediction.len() as f64;
-    let mut total_loss = Tensor::scalar(0.0);
-    for (pred, target) in prediction.iter().zip(targets.iter()){
-        let diff = pred.sub(&target);
-        let squared_diff = diff.multiply(&diff);
-        total_loss = total_loss.add(&squared_diff);
-    }
-    total_loss.multiply(&Tensor::scalar(1.0 / n))
+pub fn mse_loss(predictions: Tensor, targets: Tensor) -> Tensor {
+    // MSE = 1 / n * sum((y_i - y_hat_i) ^ 2)
+    let diff = predictions.sub(&targets);
+    let squared = diff.pow(2.0);
+    squared.mean()
 }
 
 pub fn cross_entropy_loss(prediction: &[Tensor], targets: &[Tensor]) -> Tensor{

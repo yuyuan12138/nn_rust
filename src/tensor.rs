@@ -1,8 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use ndarray::{ArrayD, IxDyn};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Tensor {
     pub data: Rc<RefCell<NodeData>>,
 }
@@ -14,7 +13,7 @@ pub enum TensorValue {
     Matrix2D(Vec<Vec<f64>>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct NodeData {
     pub value: TensorValue,
     pub grad: TensorValue,
@@ -57,6 +56,8 @@ pub enum Operation{
     Div,
     Matmul,
     Sigmoid,
+    Mean,
+    Pow(f64),
     // TODO
 }
 
@@ -101,7 +102,7 @@ impl TensorValue {
         }
     }
 
-    pub(crate) fn sub(&self, other: &Self) -> Self {
+    pub fn sub(&self, other: &Self) -> Self {
         match (self, other) {
             (TensorValue::Scalar(a), TensorValue::Scalar(b)) => TensorValue::Scalar(a - b),
             (TensorValue::Vector1D(a), TensorValue::Vector1D(b)) => {
@@ -141,6 +142,23 @@ impl TensorValue {
 }
 
 impl Tensor {
+
+    pub fn detach(&self) -> Self {
+        Tensor {
+            data: Rc::new(RefCell::new(NodeData {
+                value: self.data.borrow().value.clone(),
+                grad: match &self.data.borrow().value {
+                    TensorValue::Scalar(_) => TensorValue::Scalar(0.0),
+                    TensorValue::Vector1D(v) => TensorValue::Vector1D(vec![0.0; v.len()]),
+                    TensorValue::Matrix2D(m) => TensorValue::Matrix2D(
+                        vec![vec![0.0; m[0].len()]; m.len()]
+                    ),
+                },
+                operation: Operation::None,
+                dependencies: vec![]
+            }))
+        }
+    }
 
     fn from_value(value: TensorValue) -> Self {
         let grad = match &value {
@@ -398,6 +416,19 @@ impl Tensor {
         let b = other.data.borrow();
 
         let result_value = match (&a.value, &b.value) {
+            (TensorValue::Matrix2D(a_mat), TensorValue::Vector1D(b_vec)) => {
+                assert_eq!(a_mat[0].len(), b_vec.len(),
+                           "Matrix multiplication dimension mismatch: {} vs {}",
+                           a_mat[0].len(), b_vec.len()
+                );
+                let mut result = vec![0.0; a_mat.len()];
+                for i in 0..a_mat.len() {
+                    for j in 0..a_mat[0].len() {
+                        result[i] += a_mat[i][j] * b_vec[j];
+                    }
+                }
+                TensorValue::Vector1D(result)
+            },
             (TensorValue::Matrix2D(a_mat), TensorValue::Matrix2D(b_mat)) => {
                 assert_eq!(a_mat[0].len(), b_mat.len(),
                            "Matrix multiplication dimension mismatch: {} vs {}",
@@ -456,6 +487,62 @@ impl Tensor {
         result
     }
 
+    pub fn mean(&self) -> Tensor {
+        let data = self.data.borrow();
+        let result_value = match &data.value {
+            TensorValue::Vector1D(v) => {
+                // Mean for vec
+                let sum: f64 = v.iter().sum();
+                let count = v.len();
+
+                TensorValue::Scalar(
+                    sum / count as f64
+                )
+            }
+            _ => panic!("mean only supported for 1D Vectors"),
+        };
+        let result = Self::from_value(result_value);
+        {
+            let mut res_data = result.data.borrow_mut();
+            res_data.operation = Operation::Mean;
+            res_data.dependencies = vec![self.clone()];
+        }
+
+        result
+    }
+
+    pub fn pow(&self, value: f64) -> Tensor {
+        let a = self.data.borrow();
+
+        let result_value = match &a.value {
+            TensorValue::Scalar(v) => {
+                let s = v.powf(value);
+                TensorValue::Scalar(s)
+            }
+            TensorValue::Vector1D(v) => {
+                TensorValue::Vector1D(
+                    v.iter().map(|x| x.powf(value)).collect()
+                )
+            }
+            TensorValue::Matrix2D(m) => {
+                TensorValue::Matrix2D(
+                    m.iter().map(|row| {
+                        row.iter().map(|x| x.powf(value)).collect()
+                    }).collect()
+                )
+            }
+        };
+
+        let result = Self::from_value(result_value);
+        {
+            let mut res_data = result.data.borrow_mut();
+            res_data.operation = Operation::Pow(value);
+            res_data.dependencies = vec![self.clone()];
+        }
+
+        result
+    }
+
     pub fn backward(&self) {
         {
             let mut data = self.data.borrow_mut();
@@ -509,17 +596,11 @@ impl Tensor {
                     }
                     TensorValue::Vector1D(grad_vec) => {
                         a.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_vec.clone()));
-                        b.data.borrow_mut().add_grad(TensorValue::Vector1D(
-                            grad_vec.iter().map(|g| 1.0 * g).collect()
-                        ));
+                        b.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_vec.clone()));
                     }
                     TensorValue::Matrix2D(grad_mat) => {
                         a.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_mat.clone()));
-                        b.data.borrow_mut().add_grad(TensorValue::Matrix2D(
-                            grad_mat.iter().map(|row|
-                                row.iter().map(|g| 1.0 * g).collect()
-                            ).collect()
-                        ));
+                        b.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_mat.clone()));
                     }
                 }
             }
@@ -531,6 +612,7 @@ impl Tensor {
 
                 let a = &dependencies[0];
                 let b = &dependencies[1];
+
 
                 match &data.grad {
                     TensorValue::Scalar(grad) => {
@@ -666,11 +748,229 @@ impl Tensor {
             }
 
             Operation::Matmul => {
-                todo!()
+                // TODO
+                let dependencies = &data.dependencies;
+                if dependencies.len() != 2 {
+                    panic!("Matmul operation requires exactly 2 dependencies");
+                }
+
+                let a = &dependencies[0];
+                let b = &dependencies[1];
+
+                let grad = &data.grad;
+
+                let (a_val, b_val) = {
+                    let a_data = a.data.borrow();
+                    let b_data = b.data.borrow();
+                    (a_data.value.clone(), b_data.value.clone())
+                };
+
+                match (&a_val, &b_val) {
+                    (TensorValue::Matrix2D(a_mat), TensorValue::Vector1D(b_vec)) => {
+                        let (m, n) = (a_mat.len(), a_mat[0].len());
+                        let p = 1;
+
+                        let grad_mat = match grad {
+                            TensorValue::Vector1D(v) => {
+                                assert_eq!(
+                                    v.len(), m,
+                                    "Gradient vector length mismatch: expected {}, got {}",
+                                    m, v.len()
+                                );
+                                v.iter().map(|&x| vec![x]).collect::<Vec<Vec<f64>>>()
+                            },
+                            TensorValue::Matrix2D(mat) => {
+                                assert_eq!(
+                                    mat.len(), m,
+                                    "Gradient matrix row mismatch: expected {}, got {}",
+                                    m, mat.len()
+                                );
+                                assert_eq!(
+                                    mat[0].len(), p,
+                                    "Gradient matrix should have 1 column, got {}",
+                                    mat[0].len()
+                                );
+                                mat.clone()
+                            },
+                            _ => panic!("Invalid gradient shape for matrix-vector matmul")
+                        };
+
+                        let b_row = vec![b_vec.clone()]; // 1 x n
+                        let da = matrix_multiply(&grad_mat, &b_row);
+
+                        let a_t = transpose(a_mat);
+                        let db_mat = matrix_multiply(&a_t, &grad_mat);
+
+                        let db = db_mat.into_iter()
+                            .map(|row| row[0])
+                            .collect::<Vec<f64>>();
+
+                        assert_eq!(da.len(), m, "dA row mismatch");
+                        assert_eq!(da[0].len(), n, "dA column mismatch");
+                        assert_eq!(db.len(), n, "dB length mismatch");
+
+                        a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da));
+                        b.data.borrow_mut().add_grad(TensorValue::Vector1D(db));
+
+                    }
+                    (TensorValue::Matrix2D(a_mat), TensorValue::Matrix2D(b_mat)) => {
+                        let (m, n) = (a_mat.len(), a_mat[0].len());
+                        let (n_, p) = (b_mat.len(), b_mat[0].len());
+
+                        let grad_ = match &data.grad {
+                            TensorValue::Matrix2D(grad_) => grad_,
+                            _ => panic!("")
+                        };
+                        assert_eq!(n, n_, "Matmul dimension mismatch: A.cols({}) != B.rows({})", n, n_);
+                        assert_eq!(grad_.len(), m, "Gradient rows mismatch: excepted {}, got {}", m, grad_.len());
+                        assert_eq!(grad_[0].len(), p, "Gradient rows mismatch: excepted {}, got {}", p, grad_.len());
+
+                        let b_t = transpose(b_mat);
+                        let da = matrix_multiply(&grad_, &b_t);
+
+                        let a_t = transpose(a_mat);
+                        let db = matrix_multiply(&a_t, &grad_);
+
+                        a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da));
+                        b.data.borrow_mut().add_grad(TensorValue::Matrix2D(db));
+                    }
+                    _ => panic!("Unsupported Matmul backward combination"),
+                }
+
+            }
+
+            Operation::Mean => {
+                let dependencies = &data.dependencies;
+                if dependencies.len() != 1 {
+                    panic!("Mean operation requires exactly 1 dependency");
+                }
+
+                let input = &dependencies[0];
+
+                let input_shape = {
+                    let input_data = input.data.borrow();
+                    input_data.value.shape()
+                };
+
+                let grad = match &data.grad {
+                    TensorValue::Scalar(g) => *g,
+                    _ => panic!("Mean gradient must be a scalar!"),
+                };
+
+                let num_elements = input_shape.iter().product::<usize>() as f64;
+                let grad_per_elements = grad / num_elements;
+
+                let grad_tensor = match input_shape.len() {
+                    0 => {
+                        TensorValue::Scalar(grad_per_elements)
+                    }
+                    1 => {
+                        TensorValue::Vector1D(vec![grad_per_elements; input_shape[0]])
+                    }
+                    2 => {
+                        TensorValue::Matrix2D(vec![vec![grad_per_elements; input_shape[1]]; input_shape[0]])
+                    }
+                    _ => panic!("Unsupported dimension for mean backward!")
+                };
+
+                input.data.borrow_mut().add_grad(grad_tensor);
+
+            }
+
+            Operation::Pow(exponent) => {
+
+                let dependencies = &data.dependencies;
+                if dependencies.len() != 1 {
+                    panic!("Pow operation requires exactly 1 dependency");
+                }
+
+                let x = &dependencies[0];
+                let x_val = {
+                    let x_data = x.data.borrow();
+                    x_data.value.clone()
+                };
+
+                // value * x
+                match (&data.grad, &x_val) {
+                    (TensorValue::Scalar(grad), TensorValue::Scalar(s)) => {
+                        let dx = if s.abs() < 1e-12 && exponent < 1.0 {
+                            0.0
+                        } else {
+                            grad * exponent * s.powf(exponent - 1.0)
+                        };
+                        x.data.borrow_mut().add_grad_scalar(dx);
+                    }
+                    (TensorValue::Vector1D(grad), TensorValue::Vector1D(s)) => {
+                        assert_eq!(s.len(), grad.len(), "Vector length mismatch in Pow backward");
+
+                        let dx_vec: Vec<_> = s.iter().zip(grad).map(|(x_, g_)| {
+                            if x_.abs() < 1e-12 && exponent < 1.0 {
+                                0.0
+                            }else {
+                                g_ * exponent * x_.powf(exponent - 1.0)
+                            }
+                        }).collect();
+
+                        x.data.borrow_mut().add_grad(TensorValue::Vector1D(dx_vec))
+                    }
+                    (TensorValue::Matrix2D(grad), TensorValue::Matrix2D(s)) => {
+                        let dx_mat = s.iter()
+                            .zip(grad)
+                            .map(|(x_row, g_row)| {
+                                x_row.iter()
+                                    .zip(g_row)
+                                    .map(|(x_, g_)| {
+                                        if x_.abs() < 1e-12 && exponent < 1.0 {
+                                            0.0
+                                        }else {
+                                            g_ * exponent * x_.powf(exponent - 1.0)
+                                        }
+                                    }).collect()
+                            }).collect();
+                        x.data.borrow_mut().add_grad(TensorValue::Matrix2D(dx_mat))
+                    }
+                    _ => panic!("Invalid sigmoid gradient combination"),
+                }
             }
 
             // 其他操作...
             _ => {}
         }
     }
+}
+
+fn transpose(matrix: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let rows = matrix.len();
+    let cols = matrix[0].len();
+
+    let mut result = vec![vec![0.0; rows]; cols];
+
+    for i in 0..rows {
+        for j in 0..cols{
+            result[j][i] = matrix[i][j];
+        }
+    }
+
+    result
+
+}
+
+fn matrix_multiply(a: &Vec<Vec<f64>>, b: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let m = a.len();
+    let n = a[0].len();
+    let p = b[0].len();
+
+    assert_eq!(n, b.len(), "Matrix multiplication dimension mismatch");
+
+    let mut result = vec![vec![0.0; p]; m];
+
+    for i in 0..m{
+        for k in 0..n {
+            let a_ik = a[i][k];
+            for j in 0..p {
+                result[i][j] += a_ik * b[k][j];
+            }
+        }
+    }
+    result
 }

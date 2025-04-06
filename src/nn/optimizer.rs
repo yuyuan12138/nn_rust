@@ -30,6 +30,7 @@ impl Optimizer for SGD {
                     )
                 }
             };
+
             data.value = data.value.sub(&update);
         }
     }
