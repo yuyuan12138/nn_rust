@@ -19,6 +19,6 @@ impl Layer for Linear {
     }
 
     fn forward(&self, inputs: &Tensor) -> Tensor {
-        self.params.forward(inputs)
+        self.params.forward(inputs).sigmoid()
     }
 }

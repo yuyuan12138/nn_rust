@@ -48,6 +48,6 @@ impl Layer for Parameter2D {
     }
 
     fn forward(&self, inputs: &Tensor) -> Tensor {
-        self.weights.matmul(inputs).add(&self.bias).sigmoid()
+        self.weights.matmul(inputs).add(&self.bias)
     }
 }
