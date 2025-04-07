@@ -11,7 +11,7 @@ pub struct NodeData {
 }
 
 impl NodeData {
-    pub(crate) fn add_grad_scalar(&mut self, delta: f64) {
+    pub fn add_grad_scalar(&mut self, delta: f64) {
         match &mut self.grad {
             TensorValue::Scalar(v) => *v += delta,
             TensorValue::Vector1D(vec) => vec.iter_mut().for_each(|x| *x += delta),
@@ -20,7 +20,7 @@ impl NodeData {
         }
     }
 
-    pub(crate) fn add_grad(&mut self, delta: TensorValue) {
+    pub fn add_grad(&mut self, delta: TensorValue) {
         match (&mut self.grad, &delta) {
             (TensorValue::Scalar(a), TensorValue::Scalar(b)) => *a += b,
             (TensorValue::Vector1D(a), TensorValue::Vector1D(b)) => {

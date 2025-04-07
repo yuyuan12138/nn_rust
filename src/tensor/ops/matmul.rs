@@ -138,6 +138,7 @@ pub fn backward(tensor: &Tensor){
             a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da));
             b.data.borrow_mut().add_grad(TensorValue::Matrix2D(db));
         }
+
         _ => panic!("Unsupported Matmul backward combination"),
     }
 }

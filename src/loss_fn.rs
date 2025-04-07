@@ -7,18 +7,12 @@ pub fn mse_loss(predictions: Tensor, targets: Tensor) -> Tensor {
     squared.mean()
 }
 
-pub fn bce_loss(predictions: Tensor, targets: Tensor) -> Tensor {
-
+pub fn bce_loss(predictions: &Tensor, targets: &Tensor) -> Tensor {
     let left = predictions.log(1.0_f64.exp()).multiply(&targets);
-    let one = Tensor::matrix(vec![vec![
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-    ]]);
+    let one = Tensor::vector(vec![1.0]);
     let right = one.sub(&predictions).log(1.0_f64.exp()).multiply(&one.sub(&targets));
-    let negative_one = Tensor::scalar(-1.0);
-    left.add(&right).mean().multiply(&negative_one)
+    let negative_one = Tensor::vector(vec![-1.0]);
+    left.add(&right).multiply(&negative_one)
 }
 
 pub fn cross_entropy_loss(prediction: &[Tensor], targets: &[Tensor]) -> Tensor{

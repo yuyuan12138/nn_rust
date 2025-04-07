@@ -2,34 +2,33 @@ use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
 
 impl Tensor {
-    pub fn sigmoid(&self) -> Tensor {
-        let a = self.data.borrow();
-
-        let result_value = match &a.value {
+    pub fn tanh(&self) -> Tensor {
+        let data = self.data.borrow();
+        let result_value = match &data.value {
             TensorValue::Scalar(v) => {
-                let s = 1.0 / (1.0 + (-v).exp());
+                let s = (v.exp() - (-v).exp()) / (v.exp() + (-v).exp());
                 TensorValue::Scalar(s)
             }
             TensorValue::Vector1D(v) => {
                 TensorValue::Vector1D(
-                    v.iter().map(|x| 1.0 / (1.0 + (-x).exp())).collect()
+                    v.iter().map(|x| (x.exp() - (-x).exp()) / (x.exp() + (-x).exp())).collect()
                 )
             }
             TensorValue::Matrix2D(m) => {
                 TensorValue::Matrix2D(
                     m.iter().map(|row| {
-                        row.iter().map(|x| 1.0 / (1.0 + (-x).exp())).collect()
+                        row.iter().map(|x| (x.exp() - (-x).exp()) / (x.exp() + (-x).exp())).collect()
                     }).collect()
                 )
             }
         };
-
         let result = Self::from_value(result_value);
         {
             let mut res_data = result.data.borrow_mut();
-            res_data.operation = Operation::Sigmoid;
+            res_data.operation = Operation::Tanh;
             res_data.dependencies = vec![self.clone()];
         }
+
         result
     }
 }
@@ -38,25 +37,25 @@ pub fn backward(tensor: &Tensor){
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
-        panic!("Sigmoid operation requires exactly 1 dependency");
+        panic!("Tanh operation requires exactly 1 dependency");
     }
 
     let x = &dependencies[0];
-    let sigmoid_output = match &data.value {
+    let tanh_output = match &data.value {
         TensorValue::Scalar(s) => TensorValue::Scalar(*s),
         TensorValue::Vector1D(v) => TensorValue::Vector1D(v.clone()),
         TensorValue::Matrix2D(m) => TensorValue::Matrix2D(m.clone()),
     };
 
-    match (&data.grad, &sigmoid_output) {
+    match (&data.grad, &tanh_output) {
         (TensorValue::Scalar(grad), TensorValue::Scalar(s)) => {
-            let grad_x = grad * s * (1.0 - s);
+            let grad_x = grad * (1.0 - s.powf(2.0));
             x.data.borrow_mut().add_grad_scalar(grad_x);
         }
         (TensorValue::Vector1D(grad), TensorValue::Vector1D(s)) => {
             let grad_x: Vec<_> = grad.iter()
                 .zip(s)
-                .map(|(g, s_)| g * s_ * (1.0 - s_))
+                .map(|(g, s_)| g * (1.0 - s_.powf(2.0)))
                 .collect();
             x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_x));
         }
@@ -66,12 +65,12 @@ pub fn backward(tensor: &Tensor){
                 .map(|(g_row, s_row)| {
                     g_row.iter()
                         .zip(s_row)
-                        .map(|(g, s_)| g * s_ * (1.0 - s_))
+                        .map(|(g, s_)| g * (1.0 - s_.powf(2.0)))
                         .collect()
                 })
                 .collect();
             x.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_x));
         }
-        _ => panic!("Invalid sigmoid gradient combination"),
+        _ => panic!("Invalid tanh gradient combination"),
     }
 }

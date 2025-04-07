@@ -4,7 +4,7 @@ use super::Layer;
 
 
 pub struct Linear {
-    params: Parameter2D,
+    pub params: Parameter2D,
 }
 
 impl Layer for Linear {
@@ -19,6 +19,6 @@ impl Layer for Linear {
     }
 
     fn forward(&self, inputs: &Tensor) -> Tensor {
-        self.params.forward(inputs).sigmoid()
+        self.params.forward(inputs)
     }
 }

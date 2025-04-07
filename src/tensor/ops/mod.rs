@@ -1,7 +1,5 @@
 use crate::tensor::Tensor;
 use crate::tensor::operation::Operation;
-use crate::tensor::utils::{matrix_multiply, transpose};
-use crate::tensor::value::TensorValue;
 
 pub mod add;
 pub mod div;
@@ -13,6 +11,8 @@ pub mod pow;
 pub mod relu;
 pub mod sigmoid;
 pub mod sub;
+pub mod broadcast;
+pub mod tanh;
 
 pub fn _backward(tensor: &Tensor){
     let data = tensor.data.borrow();
@@ -29,7 +29,13 @@ pub fn _backward(tensor: &Tensor){
         Operation::Log(base) => log::backward(&tensor, base),
 
         Operation::Pow(exponent) => pow::backward(&tensor, exponent),
-        // 其他操作...
-        _ => {}
+        Operation::Tanh => tanh::backward(&tensor),
+
+        Operation::Broadcast => broadcast::backward(&tensor),
+
+        Operation::None => {}
+        _ => {
+            panic!("No definitive operation {:?}", data.operation);
+        }
     }
 }

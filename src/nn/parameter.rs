@@ -1,3 +1,4 @@
+use rand::Rng;
 use crate::tensor::{Tensor};
 use super::Layer;
 
@@ -34,8 +35,23 @@ impl Layer for Parameter1D {
 
 impl Layer for Parameter2D {
     fn new(input_size: usize, output_size: usize) -> Self {
-        let weights = Tensor::matrix(vec![vec![rand::random::<f64>() * 0.1; input_size]; output_size]);
-        let bias = Tensor::matrix(vec![vec![rand::random::<f64>() * 0.1; output_size]; output_size]);
+        let mut rng = rand::rng();
+        let xavier_std = (2.0 / (input_size as f64 + output_size as f64)).sqrt();
+
+        let weights = Tensor::matrix(
+            (0..output_size).map(|_| {
+                (0..input_size).map(|_| {
+                    let val: f64 = rng.random(); // [0,1) 随机数
+                    (val - 0.5) * 2.0 * xavier_std // 转换到 [-xavier_std, xavier_std]
+                }).collect()
+            }).collect()
+        );
+        let bias = Tensor::vector(
+            (0..output_size).map(|_| {
+                let val: f64 = rng.random();
+                (val - 0.5) * 0.01 // [-0.005, 0.005]
+            }).collect()
+        );
 
         Parameter2D{
             weights,
@@ -48,6 +64,6 @@ impl Layer for Parameter2D {
     }
 
     fn forward(&self, inputs: &Tensor) -> Tensor {
-        self.weights.matmul(inputs)
+        self.weights.matmul(inputs).add(&self.bias)
     }
 }

@@ -24,28 +24,6 @@ impl TensorValue {
         }
     }
 
-    fn broadcast_mul(&self, other: &Self) -> Self {
-        match (self, other) {
-            (TensorValue::Scalar(s), TensorValue::Vector1D(v)) => {
-                TensorValue::Vector1D(v.iter().map(|x| s * x).collect())
-            }
-            (TensorValue::Scalar(s), TensorValue::Matrix2D(m)) => {
-                TensorValue::Matrix2D(
-                    m.iter().map(|row| row.iter().map(|x| s * x).collect()).collect()
-                )
-            }
-            _ => panic!("Unsupported broadcast combination"),
-        }
-    }
-
-    fn sum(&self) -> f64 {
-        match self {
-            TensorValue::Scalar(s) => *s,
-            TensorValue::Vector1D(v) => v.iter().sum(),
-            TensorValue::Matrix2D(m) => m.iter().flat_map(|row| row.iter()).sum(),
-        }
-    }
-
     pub fn sub(&self, other: &Self) -> Self {
         match (self, other) {
             (TensorValue::Scalar(a), TensorValue::Scalar(b)) => TensorValue::Scalar(a - b),
