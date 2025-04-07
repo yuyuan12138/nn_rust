@@ -52,7 +52,7 @@ fn test_xor(){
     }
 
 
-    for (_i, (input, target)) in inputs.iter().zip(&targets).enumerate() {
+    for (_i, (input, _target)) in inputs.iter().zip(&targets).enumerate() {
         let hidden = layer1.forward(&input).tanh();
         let outputs = layer2.forward(&hidden).sigmoid();
         println!("Updated output: {:?}", outputs.data.borrow().value);
