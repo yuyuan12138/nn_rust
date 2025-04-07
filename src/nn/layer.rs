@@ -1,7 +1,7 @@
+use crate::tensor::Tensor;
 use super::parameter::{Parameter2D};
 use super::Layer;
 
-use crate::tensor::Tensor;
 
 pub struct Linear {
     params: Parameter2D,

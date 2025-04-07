@@ -1,4 +1,5 @@
-use crate::tensor::{Tensor, TensorValue};
+use crate::tensor::{Tensor};
+use crate::tensor::value::TensorValue;
 use super::Optimizer;
 
 pub struct SGD {

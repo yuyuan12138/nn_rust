@@ -1,4 +1,4 @@
-use crate::tensor::{Tensor, TensorValue};
+use crate::tensor::{Tensor};
 use super::Layer;
 
 pub struct Parameter1D {
@@ -15,7 +15,7 @@ impl Layer for Parameter1D {
     fn new(input_size: usize, output_size: usize) -> Self {
         assert_eq!(input_size, output_size, "input_size and output_size must be the same in Parameter1D.");
         let weights = Tensor::vector(vec![rand::random::<f64>() * 0.1; input_size]);
-        let bias = Tensor::vector(vec![rand::random::<f64>() * 0.1; input_size]);
+        let bias = Tensor::scalar(rand::random::<f64>() * 0.1);
 
         Parameter1D{
             weights,
@@ -35,7 +35,7 @@ impl Layer for Parameter1D {
 impl Layer for Parameter2D {
     fn new(input_size: usize, output_size: usize) -> Self {
         let weights = Tensor::matrix(vec![vec![rand::random::<f64>() * 0.1; input_size]; output_size]);
-        let bias = Tensor::vector(vec![rand::random::<f64>() * 0.1; output_size]);
+        let bias = Tensor::matrix(vec![vec![rand::random::<f64>() * 0.1; output_size]; output_size]);
 
         Parameter2D{
             weights,
@@ -48,6 +48,6 @@ impl Layer for Parameter2D {
     }
 
     fn forward(&self, inputs: &Tensor) -> Tensor {
-        self.weights.matmul(inputs).add(&self.bias)
+        self.weights.matmul(inputs)
     }
 }

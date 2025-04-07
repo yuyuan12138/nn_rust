@@ -9,47 +9,46 @@ use loss_fn::mse_loss;
 use nn::Layer;
 use nn::Optimizer;
 use nn::optimizer::SGD;
-use crate::tensor::TensorValue;
+use crate::loss_fn::bce_loss;
+use crate::tensor::value::TensorValue;
 
 fn test_XOR(){
-    // TODO: an example about XOR function. [1, 0] || [0, 1] -> 1 [0, 0] || [1, 1] -> 0; DONE !
-    let x1 = Tensor::scalar(1.0);
-    let x2 = Tensor::scalar(0.0);
 
-    let layer = nn::layer::Linear::new(2, 1);
-    let input_1 = Tensor::vector(vec![1.0, 1.0]);
-    let input_2 = Tensor::vector(vec![0.0, 0.0]);
-    let input_3 = Tensor::vector(vec![1.0, 0.0]);
-    let input_4 = Tensor::vector(vec![0.0, 1.0]);
 
-    let inputs = [&input_1, &input_2, &input_3, &input_4];
+    let layer1 = nn::layer::Linear::new(2, 4);
+    let layer2 = nn::layer::Linear::new(4, 1);
+    let inputs = Tensor::matrix(vec![vec![1.0, 1.0, 0.0, 0.0], vec![1.0, 0.0, 1.0, 0.0]]);
 
-    let targets = [
-        Tensor::vector(vec![0.0]),
-        Tensor::vector(vec![0.0]),
-        Tensor::vector(vec![1.0]),
-        Tensor::vector(vec![1.0]),
-    ];
+
+
+    let targets = Tensor::matrix(vec![vec![
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+    ]]);
 
     let optimizer = SGD::new(0.01);
 
-    for _ in 0..10000 {
-        for (i, input) in inputs.iter().enumerate() {
-            optimizer.zero_grad(&layer.parameters());
-            let outputs = layer.forward(&input);
+    for _ in 0..1000_000 {
 
-            let loss = mse_loss(outputs, targets[i].clone());
-            loss.backward();
-            optimizer.step(&layer.parameters());
+        optimizer.zero_grad(&layer1.parameters());
+        optimizer.zero_grad(&layer2.parameters());
+        let hidden = layer1.forward(&inputs);
 
-        }
+        let outputs = layer2.forward(&hidden);
+        let loss = bce_loss(outputs, targets.clone());
+        loss.backward();
+        optimizer.step(&layer1.parameters());
+        optimizer.step(&layer2.parameters());
     }
 
-    for (i, input) in inputs.iter().enumerate() {
-        let outputs = layer.forward(&input);
-        // println!("outputs_2: {:?}", outputs_2.data.borrow().value);
-        println!("Updated output: {:?}", outputs.data.borrow().value);
-    }
+
+    let hidden = layer1.forward(&inputs);
+    let outputs = layer2.forward(&hidden);
+
+    println!("Updated output: {:?}", outputs.data.borrow().value);
+
 }
 
 
