@@ -26,14 +26,7 @@ impl Tensor {
                            "Matrix multiplication dimension mismatch: {} vs {}",
                            a_mat[0].len(), b_mat.len());
 
-                let mut result = vec![vec![0.0; b_mat[0].len()]; a_mat.len()];
-                for i in 0..a_mat.len() {
-                    for j in 0..b_mat[0].len() {
-                        for k in 0..a_mat[0].len() {
-                            result[i][j] += a_mat[i][k] * b_mat[k][j];
-                        }
-                    }
-                }
+                let result = matrix_multiply(a_mat, b_mat);
                 TensorValue::Matrix2D(result)
             }
             _ => panic!("Matmul only supported for 2D matrices"),

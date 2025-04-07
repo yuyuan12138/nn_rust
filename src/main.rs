@@ -29,7 +29,7 @@ fn test_xor(){
 
     let optimizer = SGD::new(0.1);
 
-    for j in 0..100_000 {
+    for _ in 0..10_000 {
         for (_i, (input, target)) in inputs.iter().zip(&targets).enumerate() {
             optimizer.zero_grad(&layer1.parameters());
             optimizer.zero_grad(&layer2.parameters());
