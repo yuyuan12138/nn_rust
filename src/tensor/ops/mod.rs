@@ -15,6 +15,8 @@ pub mod tanh;
 pub mod softmax;
 pub mod sum;
 pub mod t;
+pub mod unsqueeze;
+pub mod squeeze;
 
 pub fn _backward(tensor: &Tensor){
     let data = tensor.data.borrow();
@@ -33,6 +35,8 @@ pub fn _backward(tensor: &Tensor){
         Operation::Softmax => softmax::backward(&tensor),
         Operation::Sum => sum::backward(&tensor),
         Operation::T => t::backward(&tensor),
+        Operation::Unsqueeze(dim) => unsqueeze::backward(&tensor, dim),
+        Operation::Squeeze(dim) => squeeze::backward(&tensor, dim),
 
         Operation::None => {}
         _ => {

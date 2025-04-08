@@ -20,7 +20,7 @@ pub enum Operation{
 
     Broadcast,
     Unsqueeze(usize),
-    Squeeze(Option<usize>),
+    Squeeze(usize),
     Convolution1D,
     Convolution2D,
 }
