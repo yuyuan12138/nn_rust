@@ -17,6 +17,7 @@ impl NodeData {
             TensorValue::Vector1D(vec) => vec.iter_mut().for_each(|x| *x += delta),
             TensorValue::Matrix2D(mat) => mat.iter_mut()
                 .for_each(|row| row.iter_mut().for_each(|x| *x += delta)),
+            TensorValue::Tensor3D(_) => todo!()
         }
     }
 

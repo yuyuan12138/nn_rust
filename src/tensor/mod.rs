@@ -27,6 +27,7 @@ impl Tensor {
                     TensorValue::Matrix2D(m) => TensorValue::Matrix2D(
                         vec![vec![0.0; m[0].len()]; m.len()]
                     ),
+                    TensorValue::Tensor3D(_) => todo!()
                 },
                 operation: Operation::None,
                 dependencies: vec![]
@@ -41,6 +42,7 @@ impl Tensor {
             TensorValue::Matrix2D(m) => {
                 TensorValue::Matrix2D(vec![vec![0.0; m[0].len()]; m.len()])
             }
+            TensorValue::Tensor3D(_) => todo!()
         };
 
         Tensor {

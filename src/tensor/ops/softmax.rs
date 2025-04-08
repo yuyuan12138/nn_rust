@@ -87,9 +87,7 @@ pub fn backward(tensor: &Tensor) {
         }
         (TensorValue::Matrix2D(s_mat), TensorValue::Matrix2D(dy_mat)) => {
             assert_eq!(s_mat.len(), dy_mat.len(), "Gradient rows mismatch");
-            let cols = s_mat[0].len();
 
-            // 转置以按列处理
             let s_transposed = transpose(s_mat);
             let dy_transposed = transpose(dy_mat);
 

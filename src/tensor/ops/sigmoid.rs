@@ -22,6 +22,7 @@ impl Tensor {
                     }).collect()
                 )
             }
+            TensorValue::Tensor3D(_) => todo!()
         };
 
         let result = Self::from_value(result_value);
@@ -46,6 +47,7 @@ pub fn backward(tensor: &Tensor){
         TensorValue::Scalar(s) => TensorValue::Scalar(*s),
         TensorValue::Vector1D(v) => TensorValue::Vector1D(v.clone()),
         TensorValue::Matrix2D(m) => TensorValue::Matrix2D(m.clone()),
+        TensorValue::Tensor3D(_) => todo!()
     };
 
     match (&data.grad, &sigmoid_output) {

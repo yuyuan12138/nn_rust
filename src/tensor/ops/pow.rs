@@ -22,6 +22,7 @@ impl Tensor {
                     }).collect()
                 )
             }
+            TensorValue::Tensor3D(_) => todo!()
         };
 
         let result = Self::from_value(result_value);

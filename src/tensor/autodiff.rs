@@ -11,6 +11,7 @@ impl Tensor {
                 TensorValue::Matrix2D(m ) => {
                     TensorValue::Matrix2D(vec![vec![1.0; m[0].len()]; m.len()])
                 }
+                TensorValue::Tensor3D(t) => todo!()
             };
         }
 

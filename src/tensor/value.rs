@@ -3,6 +3,7 @@ pub enum TensorValue {
     Scalar(f64),
     Vector1D(Vec<f64>),
     Matrix2D(Vec<Vec<f64>>),
+    Tensor3D(Vec<Vec<Vec<f64>>>),
 }
 
 impl TensorValue {
@@ -13,6 +14,9 @@ impl TensorValue {
             TensorValue::Matrix2D(m) => {
                 TensorValue::Matrix2D(vec![vec![0.0; m[0].len()]; m.len()])
             }
+            TensorValue::Tensor3D(t) => {
+                TensorValue::Tensor3D(vec![vec![vec![0.0; t[0][0].len()]; t[0].len()]; t.len()])
+            }
         }
     }
 
@@ -21,6 +25,7 @@ impl TensorValue {
             TensorValue::Scalar(_) => vec![],
             TensorValue::Vector1D(v) => vec![v.len()],
             TensorValue::Matrix2D(m) => vec![m.len(), m[0].len()],
+            TensorValue::Tensor3D(t) => vec![t.len(), t[0].len(), t[0][0].len()],
         }
     }
 
@@ -42,23 +47,20 @@ impl TensorValue {
                     }).collect()
                 )
             }
-            _ => panic!("Mismatched types in sub operation"),
-        }
-    }
+            (TensorValue::Tensor3D(a), TensorValue::Tensor3D(b)) => {
+                assert_eq!(a.len(), b.len(), "Matrix row mismatch in sub");
+                assert_eq!(a[0].len(), b[0].len(), "Matrix column mismatch in sub");
+                assert_eq!(a[0][0].len(), b[0][0].len(), "Matrix column mismatch in sub");
 
-    fn scaled(&self, factor: f64) -> Self {
-        match self {
-            TensorValue::Scalar(v) => TensorValue::Scalar(v * factor),
-            TensorValue::Vector1D(v) => {
-                TensorValue::Vector1D(v.iter().map(|x| x * factor).collect())
-            }
-            TensorValue::Matrix2D(m) => {
-                TensorValue::Matrix2D(
-                    m.iter().map(|row|
-                        row.iter().map(|x| x * factor).collect()
-                    ).collect()
+                TensorValue::Tensor3D(
+                    a.iter().zip(b).map(|(a_1, b_1)| {
+                        a_1.iter().zip(b_1).map(|(a_2, b_2)| {
+                            a_2.iter().zip(b_2).map(|(a_3, b_3)| a_3 - b_3).collect()
+                        }).collect()
+                    }).collect()
                 )
             }
+            _ => panic!("Mismatched types in sub operation"),
         }
     }
 }

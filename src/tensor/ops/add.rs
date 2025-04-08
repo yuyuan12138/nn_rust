@@ -81,6 +81,7 @@ pub fn backward(tensor: &Tensor){
             a.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_mat.clone()));
             b.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_mat.clone()));
         }
+        TensorValue::Tensor3D(_) => todo!()
     }
 }
 

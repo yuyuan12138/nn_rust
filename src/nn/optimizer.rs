@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use crate::tensor::{Tensor};
 use crate::tensor::value::TensorValue;
 use super::Optimizer;
@@ -30,6 +31,7 @@ impl Optimizer for SGD {
                         ).collect()
                     )
                 }
+                TensorValue::Tensor3D(_) => todo!()
             };
 
             data.value = data.value.sub(&update);
@@ -45,6 +47,7 @@ impl Optimizer for SGD {
                 TensorValue::Matrix2D(m) => {
                     TensorValue::Matrix2D(vec![vec![0.0; m[0].len()]; m.len()])
                 }
+                TensorValue::Tensor3D(_) => todo!()
             };
         }
     }

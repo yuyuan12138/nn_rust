@@ -7,7 +7,7 @@ use nn::Layer;
 use nn::Optimizer;
 use nn::optimizer::SGD;
 use crate::loss_fn::bce_loss;
-use crate::tensor::value::TensorValue;
+use rayon::prelude::*;
 
 fn test_xor(){
     let layer1 = nn::layer::Linear::new(2, 4);
@@ -29,7 +29,7 @@ fn test_xor(){
 
     let optimizer = SGD::new(0.1);
 
-    for _ in 0..10_000 {
+    for _ in 0..100_000 {
         for (_i, (input, target)) in inputs.iter().zip(&targets).enumerate() {
             optimizer.zero_grad(&layer1.parameters());
             optimizer.zero_grad(&layer2.parameters());
