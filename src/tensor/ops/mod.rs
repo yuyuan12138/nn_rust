@@ -15,6 +15,7 @@ pub mod broadcast;
 pub mod tanh;
 pub mod softmax;
 pub mod sum;
+pub mod t;
 
 pub fn _backward(tensor: &Tensor){
     let data = tensor.data.borrow();
@@ -33,6 +34,7 @@ pub fn _backward(tensor: &Tensor){
         Operation::Broadcast => broadcast::backward(&tensor),
         Operation::Softmax => softmax::backward(&tensor),
         Operation::Sum => sum::backward(&tensor),
+        Operation::T => t::backward(&tensor),
 
         Operation::None => {}
         _ => {

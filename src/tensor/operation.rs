@@ -15,6 +15,7 @@ pub enum Operation{
     Log(f64),
     Softmax,
     Sum,
+    T,
     // TODO
 
     Broadcast,

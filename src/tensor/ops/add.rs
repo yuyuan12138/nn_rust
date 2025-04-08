@@ -28,33 +28,26 @@ impl Tensor {
                     }).collect()
                 )
             }
-            // 标量广播
-            (TensorValue::Scalar(s), TensorValue::Vector1D(v)) => {
-                TensorValue::Vector1D(v.iter().map(|x| x + s).collect())
-            }
+
+            // (TensorValue::Scalar(s), TensorValue::Vector1D(v)) => {
+            //     TensorValue::Vector1D(v.iter().map(|x| x + s).collect())
+            // }
             (TensorValue::Vector1D(v), TensorValue::Scalar(s)) => {
                 TensorValue::Vector1D(v.iter().map(|x| x + s).collect())
             }
-            (TensorValue::Scalar(s), TensorValue::Matrix2D(m)) => {
-                TensorValue::Matrix2D(
-                    m.iter().map(|row| row.iter().map(|x| x + s).collect()).collect()
-                )
-            }
+            // (TensorValue::Scalar(s), TensorValue::Matrix2D(m)) => {
+            //     TensorValue::Matrix2D(
+            //         m.iter().map(|row| row.iter().map(|x| x + s).collect()).collect()
+            //     )
+            // }
             (TensorValue::Matrix2D(m), TensorValue::Scalar(s)) => {
                 TensorValue::Matrix2D(
                     m.iter().map(|row| row.iter().map(|x| x + s).collect()).collect()
                 )
             }
 
-            // 向量广播
-            (TensorValue::Matrix2D(m), TensorValue::Vector1D(v)) => {
-                TensorValue::Matrix2D(
-                    m.iter().map(|row| row.iter().zip(v).map(|(a, b)| a + b).collect()).collect()
-                )
-            }
             _ => panic!("Invalid add operation between types"),
         };
-
         let result = Self::from_value(result_value);
         {
             let mut res_data = result.data.borrow_mut();
