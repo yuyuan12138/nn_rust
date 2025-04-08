@@ -13,6 +13,8 @@ pub enum Operation{
     Pow(f64),
     ReLU,
     Log(f64),
+    Softmax,
+    Sum,
     // TODO
 
     Broadcast,

@@ -135,3 +135,23 @@ pub fn backward(tensor: &Tensor){
         _ => panic!("Unsupported Matmul backward combination"),
     }
 }
+
+#[test]
+fn matmul_works(){
+    let a = Tensor::matrix(vec![vec![2.0, 3.0], vec![3.0, 4.0]]);
+    let b = Tensor::matrix(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
+    let c = a.matmul(&b);
+    c.backward();
+
+    let a_grad = match &a.data.borrow().grad {
+        TensorValue::Matrix2D(m) => m.clone(),
+        _ => panic!("Error!")
+    };
+    let b_grad = match &b.data.borrow().grad {
+        TensorValue::Matrix2D(m) => m.clone(),
+        _ => panic!("Error!")
+    };
+
+    assert_eq!(a_grad, vec![vec![11.0, 15.0], vec![11.0, 15.0]]);
+    assert_eq!(b_grad, vec![vec![5.0, 5.0], vec![7.0, 7.0]]);
+}

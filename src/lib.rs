@@ -8,7 +8,9 @@ use nn::Optimizer;
 use nn::optimizer::SGD;
 use crate::loss_fn::bce_loss;
 use crate::tensor::value::TensorValue;
+use pyo3::prelude::*;
 
+#[pyfunction]
 fn test_xor(){
     let layer1 = nn::layer::Linear::new(2, 4);
     let layer2 = nn::layer::Linear::new(4, 1);
@@ -55,14 +57,10 @@ fn test_xor(){
         let outputs = layer2.forward(&hidden).sigmoid();
         println!("Updated output: {:?}", outputs.data.borrow().value);
     }
-
 }
 
-
-
-
-fn main() {
-    test_xor();
+#[pymodule]
+fn nn_rust(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(test_xor, m)?)?;
+    Ok(())
 }
-
-

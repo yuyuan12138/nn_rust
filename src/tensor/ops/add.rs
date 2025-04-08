@@ -90,3 +90,21 @@ pub fn backward(tensor: &Tensor){
         }
     }
 }
+
+#[test]
+fn add_works(){
+    let a = Tensor::scalar(2.0);
+    let b = Tensor::scalar(3.0);
+    let c = a.add(&b);
+    c.backward();
+    let a_grad = match &a.data.borrow().grad {
+        TensorValue::Scalar(s) => *s,
+        _ => panic!("Error!")
+    };
+    let b_grad = match &b.data.borrow().grad {
+        TensorValue::Scalar(s) => *s,
+        _ => panic!("Error!")
+    };
+    assert_eq!(a_grad, 1.0);
+    assert_eq!(b_grad, 1.0);
+}
