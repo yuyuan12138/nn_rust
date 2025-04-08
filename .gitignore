@@ -1,6 +1,0 @@
-/target
-/.venv
-/.idea
-.gitignore
-
-/lib_test
