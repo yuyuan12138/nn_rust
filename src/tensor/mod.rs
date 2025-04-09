@@ -17,22 +17,8 @@ pub struct Tensor {
 }
 
 impl Tensor {
-    pub fn detach(&self) -> Self {
-        Tensor {
-            data: Rc::new(RefCell::new(NodeData {
-                value: self.data.borrow().value.clone(),
-                grad: match &self.data.borrow().value {
-                    TensorValue::Scalar(_) => TensorValue::Scalar(0.0),
-                    TensorValue::Vector1D(v) => TensorValue::Vector1D(vec![0.0; v.len()]),
-                    TensorValue::Matrix2D(m) => TensorValue::Matrix2D(
-                        vec![vec![0.0; m[0].len()]; m.len()]
-                    ),
-                    TensorValue::Tensor3D(_) => todo!()
-                },
-                operation: Operation::None,
-                dependencies: vec![]
-            }))
-        }
+    fn metadata(&self) -> String {
+        todo!()
     }
 
     fn from_value(value: TensorValue) -> Self {
