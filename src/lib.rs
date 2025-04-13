@@ -7,7 +7,6 @@ use nn::Layer;
 use nn::Optimizer;
 use nn::optimizer::SGD;
 use crate::loss_fn::bce_loss;
-use crate::tensor::value::TensorValue;
 use pyo3::prelude::*;
 
 #[pyfunction]
@@ -40,15 +39,10 @@ fn test_xor(){
             let outputs = layer2.forward(&hidden).sigmoid();
 
             let loss = bce_loss(&outputs, &target);
-            // println!("{:?}", outputs.data.borrow().value);
-            // println!("{:?}", loss.data.borrow().value);
             loss.backward();
-            // println!("Layer1 weights grad: {:?}", layer1.params.weights.data.borrow().grad);
             optimizer.step(&layer1.parameters());
             optimizer.step(&layer2.parameters());
-            // println!("Layer1 bias value new: {:?}", layer1.params.weights.data.borrow().value);
         }
-        // println!()
     }
 
 
