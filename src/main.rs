@@ -33,18 +33,13 @@ fn test_xor(){
         for (_i, (input, target)) in inputs.iter().zip(&targets).enumerate() {
             optimizer.zero_grad(&layer1.parameters());
             optimizer.zero_grad(&layer2.parameters());
-            // println!("Layer1 bias value origin: {:?}", layer1.params.weights.data.borrow().value);
             let hidden = layer1.forward(&input).tanh();
             let outputs = layer2.forward(&hidden).sigmoid();
 
             let loss = bce_loss(&outputs, &target);
-            // println!("{:?}", outputs.data.borrow().value);
-            // println!("{:?}", loss.data.borrow().value);
             loss.backward();
-            // println!("Layer1 weights grad: {:?}", layer1.params.weights.data.borrow().grad);
             optimizer.step(&layer1.parameters());
             optimizer.step(&layer2.parameters());
-            // println!("Layer1 bias value new: {:?}", layer1.params.weights.data.borrow().value);
         }
         // println!()
     }
