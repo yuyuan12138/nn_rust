@@ -1,6 +1,7 @@
 use rand::Rng;
 use crate::tensor::{Tensor};
 use super::Layer;
+use anyhow::Result;
 
 pub struct Parameter1D {
     pub weights: Tensor,
@@ -28,8 +29,8 @@ impl Layer for Parameter1D {
         vec![&self.weights, &self.bias]
     }
 
-    fn forward(&self, inputs: &Tensor) -> Tensor {
-        inputs.multiply(&self.weights).add(&self.bias)
+    fn forward(&self, inputs: &Tensor) -> Result<Tensor> {
+        inputs.multiply(&self.weights)?.add(&self.bias)
     }
 }
 
@@ -63,7 +64,7 @@ impl Layer for Parameter2D {
         vec![&self.weights, &self.bias]
     }
 
-    fn forward(&self, inputs: &Tensor) -> Tensor {
-        self.weights.matmul(inputs).add(&self.bias)
+    fn forward(&self, inputs: &Tensor) -> Result<Tensor> {
+        self.weights.matmul(inputs)?.add(&self.bias)
     }
 }

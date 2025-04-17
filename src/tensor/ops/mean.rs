@@ -1,8 +1,9 @@
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn mean(&self) -> Tensor {
+    pub fn mean(&self) -> Result<Tensor> {
         let data = self.data.borrow();
         let result_value = match &data.value {
             TensorValue::Vector1D(v) => {
@@ -50,11 +51,11 @@ impl Tensor {
             res_data.dependencies = vec![self.clone()];
         }
 
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor){
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -89,5 +90,6 @@ pub fn backward(tensor: &Tensor){
         _ => panic!("Unsupported dimension for mean backward!")
     };
 
-    input.data.borrow_mut().add_grad(grad_tensor);
+    input.data.borrow_mut().add_grad(grad_tensor)?;
+    Ok(())
 }

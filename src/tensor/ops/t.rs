@@ -1,9 +1,10 @@
 use crate::tensor::operation::Operation;
 use crate::tensor::utils::transpose;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn t(&self) -> Tensor {
+    pub fn t(&self) -> Result<Tensor> {
         let data = self.data.borrow();
         let result_value = match &data.value {
             TensorValue::Matrix2D(m) => {
@@ -21,11 +22,11 @@ impl Tensor {
             res_data.dependencies = vec![self.clone()];
         }
 
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor){
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -38,11 +39,12 @@ pub fn backward(tensor: &Tensor){
         TensorValue::Matrix2D(m) => TensorValue::Matrix2D(transpose(m)),
         _ => panic!("T backward only for 2D matrices")
     };
-    x.data.borrow_mut().add_grad(grad);
+    x.data.borrow_mut().add_grad(grad)?;
+    Ok(())
 }
 
 #[test]
-fn t_backward_work(){
+fn t_backward_work() -> Result<()>{
     let inputs = Tensor::matrix(vec![
         vec![1.0, 1.0],
         vec![1.0, 1.0],
@@ -55,13 +57,14 @@ fn t_backward_work(){
             vec![1.0, 1.0],
         ]);
     }
-    let hidden = inputs.t();
-    let output = hidden.sum();
-    output.backward();
+    let hidden = inputs.t()?;
+    let output = hidden.sum()?;
+    output.backward()?;
     let grad = match &hidden.data.borrow().grad {
         TensorValue::Matrix2D(m) => m.clone(),
         _ => panic!("Error in shape")
     };
 
-    assert_eq!(grad, vec![vec![1.0, 1.0, 1.0], vec![1.0, 1.0, 1.0]])
+    assert_eq!(grad, vec![vec![1.0, 1.0, 1.0], vec![1.0, 1.0, 1.0]]);
+    Ok(())
 }

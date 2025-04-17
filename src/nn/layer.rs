@@ -1,7 +1,7 @@
 use crate::tensor::Tensor;
 use super::parameter::{Parameter2D};
 use super::Layer;
-
+use anyhow::Result;
 
 pub struct Linear {
     pub params: Parameter2D,
@@ -18,7 +18,7 @@ impl Layer for Linear {
         self.params.parameters()
     }
 
-    fn forward(&self, inputs: &Tensor) -> Tensor {
+    fn forward(&self, inputs: &Tensor) -> Result<Tensor> {
         self.params.forward(inputs)
     }
 }

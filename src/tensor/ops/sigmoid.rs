@@ -1,8 +1,9 @@
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn sigmoid(&self) -> Tensor {
+    pub fn sigmoid(&self) -> Result<Tensor> {
         let a = self.data.borrow();
 
         let result_value = match &a.value {
@@ -31,11 +32,11 @@ impl Tensor {
             res_data.operation = Operation::Sigmoid;
             res_data.dependencies = vec![self.clone()];
         }
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor){
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -53,14 +54,14 @@ pub fn backward(tensor: &Tensor){
     match (&data.grad, &sigmoid_output) {
         (TensorValue::Scalar(grad), TensorValue::Scalar(s)) => {
             let grad_x = grad * s * (1.0 - s);
-            x.data.borrow_mut().add_grad_scalar(grad_x);
+            x.data.borrow_mut().add_grad_scalar(grad_x)?;
         }
         (TensorValue::Vector1D(grad), TensorValue::Vector1D(s)) => {
             let grad_x: Vec<_> = grad.iter()
                 .zip(s)
                 .map(|(g, s_)| g * s_ * (1.0 - s_))
                 .collect();
-            x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_x));
+            x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_x))?;
         }
         (TensorValue::Matrix2D(grad), TensorValue::Matrix2D(s)) => {
             let grad_x: Vec<Vec<_>> = grad.iter()
@@ -72,8 +73,9 @@ pub fn backward(tensor: &Tensor){
                         .collect()
                 })
                 .collect();
-            x.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_x));
+            x.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_x))?;
         }
         _ => panic!("Invalid sigmoid gradient combination"),
     }
+    Ok(())
 }

@@ -1,8 +1,9 @@
 use crate::tensor::value::TensorValue;
 use super::{Tensor, NodeData, ops};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn backward(&self) {
+    pub fn backward(&self) -> Result<()>{
         {
             let mut data = self.data.borrow_mut();
             data.grad = match &data.value {
@@ -19,8 +20,9 @@ impl Tensor {
         let mut visited = std::collections::HashSet::new();
         self._build_topo(&mut nodes, &mut visited);
         for node in nodes.iter().rev() {
-            ops::_backward(node);
+            ops::_backward(node)?;
         }
+        Ok(())
     }
 
     fn _build_topo(&self, nodes: &mut Vec<Tensor>, visited: &mut std::collections::HashSet<*const NodeData>){

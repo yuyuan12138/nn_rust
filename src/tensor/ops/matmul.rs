@@ -1,9 +1,10 @@
 use crate::tensor::operation::Operation;
 use crate::tensor::utils::{matrix_multiply, transpose};
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn matmul(&self, other: &Tensor) -> Tensor {
+    pub fn matmul(&self, other: &Tensor) -> Result<Tensor> {
         let a = self.data.borrow();
         let b = other.data.borrow();
 
@@ -38,11 +39,11 @@ impl Tensor {
             res_data.operation = Operation::Matmul;
             res_data.dependencies = vec![self.clone(), other.clone()];
         }
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor){
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
 
     // TODO
@@ -106,8 +107,8 @@ pub fn backward(tensor: &Tensor){
             assert_eq!(da[0].len(), n, "dA column mismatch");
             assert_eq!(db.len(), n, "dB length mismatch");
 
-            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da));
-            b.data.borrow_mut().add_grad(TensorValue::Vector1D(db));
+            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da))?;
+            b.data.borrow_mut().add_grad(TensorValue::Vector1D(db))?;
 
         }
         (TensorValue::Matrix2D(a_mat), TensorValue::Matrix2D(b_mat)) => {
@@ -128,20 +129,21 @@ pub fn backward(tensor: &Tensor){
             let a_t = transpose(a_mat);
             let db = matrix_multiply(&a_t, &grad_);
 
-            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da));
-            b.data.borrow_mut().add_grad(TensorValue::Matrix2D(db));
+            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(da))?;
+            b.data.borrow_mut().add_grad(TensorValue::Matrix2D(db))?;
         }
 
         _ => panic!("Unsupported Matmul backward combination"),
     }
+    Ok(())
 }
 
 #[test]
-fn matmul_works(){
+fn matmul_works() -> Result<()>{
     let a = Tensor::matrix(vec![vec![2.0, 3.0], vec![3.0, 4.0]]);
     let b = Tensor::matrix(vec![vec![5.0, 6.0], vec![7.0, 8.0]]);
-    let c = a.matmul(&b);
-    c.backward();
+    let c = a.matmul(&b)?;
+    c.backward()?;
 
     let a_grad = match &a.data.borrow().grad {
         TensorValue::Matrix2D(m) => m.clone(),
@@ -154,4 +156,5 @@ fn matmul_works(){
 
     assert_eq!(a_grad, vec![vec![11.0, 15.0], vec![11.0, 15.0]]);
     assert_eq!(b_grad, vec![vec![5.0, 5.0], vec![7.0, 7.0]]);
+    Ok(())
 }

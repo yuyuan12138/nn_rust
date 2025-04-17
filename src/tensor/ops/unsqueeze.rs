@@ -1,9 +1,10 @@
 use crate::tensor::operation::Operation;
 use crate::tensor::utils::transpose;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn unsqueeze(&self, dim: usize) -> Tensor {
+    pub fn unsqueeze(&self, dim: usize) -> Result<Tensor> {
         let data = self.data.borrow();
 
         let result_value = match &data.value {
@@ -33,12 +34,12 @@ impl Tensor {
             res_data.operation = Operation::Unsqueeze(dim);
             res_data.dependencies = vec![self.clone()];
         }
-        result
+        Ok(result)
     }
 
 }
 
-pub fn backward(tensor: &Tensor, dim: usize) {
+pub fn backward(tensor: &Tensor, dim: usize) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -54,36 +55,37 @@ pub fn backward(tensor: &Tensor, dim: usize) {
 
     match (&data.grad, &unsqueeze_output) {
         (TensorValue::Vector1D(grad), TensorValue::Vector1D(s)) => {
-            x.data.borrow_mut().add_grad_scalar(grad[0]);
+            x.data.borrow_mut().add_grad_scalar(grad[0])?;
         }
         (TensorValue::Matrix2D(grad), TensorValue::Matrix2D(s)) => match dim {
             0 => {
-                x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad[0].clone()));
+                x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad[0].clone()))?;
             },
             1 => {
                 let grad_ = transpose(grad);
-                x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_[0].clone()));
+                x.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_[0].clone()))?;
             },
             _ => panic!("Invalid unsqueeze gradient combination"),
         }
         _ => panic!("Invalid unsqueeze gradient combination"),
     }
 
+    Ok(())
 }
 
 #[test]
-fn unsqueeze_works(){
+fn unsqueeze_works() -> Result<()>{
     let inputs_scalar = Tensor::scalar(1.0);
     let inputs_vector = Tensor::vector(vec![1.0, 1.0]);
 
-    let hidden_scalar = inputs_scalar.unsqueeze(0);
-    let hidden_vector = inputs_vector.unsqueeze(1);
+    let hidden_scalar = inputs_scalar.unsqueeze(0)?;
+    let hidden_vector = inputs_vector.unsqueeze(1)?;
 
-    let output_scalar = hidden_scalar.sum();
-    let output_vector = hidden_vector.sum();
+    let output_scalar = hidden_scalar.sum()?;
+    let output_vector = hidden_vector.sum()?;
 
-    output_scalar.backward();
-    output_vector.backward();
+    output_scalar.backward()?;
+    output_vector.backward()?;
 
     let scalar_grad = match &inputs_scalar.data.borrow().grad {
         TensorValue::Scalar(s) => *s,
@@ -94,7 +96,8 @@ fn unsqueeze_works(){
         _ => panic!("Error in scalar")
     };
     assert_eq!(scalar_grad, 1.0);
-    assert_eq!(vector_grad, vec![1.0, 1.0])
+    assert_eq!(vector_grad, vec![1.0, 1.0]);
+    Ok(())
 }
 
 

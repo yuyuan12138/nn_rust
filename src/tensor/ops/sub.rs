@@ -1,8 +1,9 @@
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn sub(&self, other: &Tensor) -> Tensor {
+    pub fn sub(&self, other: &Tensor) -> Result<Tensor> {
         let a = self.data.borrow();
         let b = other.data.borrow();
 
@@ -61,11 +62,11 @@ impl Tensor {
             res_data.operation = Operation::Sub;
             res_data.dependencies = vec![self.clone(), other.clone()];
         }
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor) {
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 2 {
@@ -76,23 +77,24 @@ pub fn backward(tensor: &Tensor) {
     let b = &dependencies[1];
     match &data.grad {
         TensorValue::Scalar(grad) => {
-            a.data.borrow_mut().add_grad_scalar(*grad);
-            b.data.borrow_mut().add_grad_scalar(-*grad);
+            a.data.borrow_mut().add_grad_scalar(*grad)?;
+            b.data.borrow_mut().add_grad_scalar(-*grad)?;
         }
         TensorValue::Vector1D(grad_vec) => {
-            a.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_vec.clone()));
+            a.data.borrow_mut().add_grad(TensorValue::Vector1D(grad_vec.clone()))?;
             b.data.borrow_mut().add_grad(TensorValue::Vector1D(
                 grad_vec.iter().map(|g| -g).collect()
-            ));
+            ))?;
         }
         TensorValue::Matrix2D(grad_mat) => {
-            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_mat.clone()));
+            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(grad_mat.clone()))?;
             b.data.borrow_mut().add_grad(TensorValue::Matrix2D(
                 grad_mat.iter().map(|row|
                     row.iter().map(|g| -g).collect()
                 ).collect()
-            ));
+            ))?;
         }
         TensorValue::Tensor3D(_) => todo!()
     }
+    Ok(())
 }

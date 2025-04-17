@@ -1,8 +1,8 @@
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
-
+use anyhow::Result;
 impl Tensor {
-    pub fn pow(&self, value: f64) -> Tensor {
+    pub fn pow(&self, value: f64) -> Result<Tensor> {
         let a = self.data.borrow();
 
         let result_value = match &a.value {
@@ -32,11 +32,11 @@ impl Tensor {
             res_data.dependencies = vec![self.clone()];
         }
 
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor, exponent: f64){
+pub fn backward(tensor: &Tensor, exponent: f64) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -57,7 +57,7 @@ pub fn backward(tensor: &Tensor, exponent: f64){
             } else {
                 grad * exponent * s.powf(exponent - 1.0)
             };
-            x.data.borrow_mut().add_grad_scalar(dx);
+            x.data.borrow_mut().add_grad_scalar(dx)?;
         }
         (TensorValue::Vector1D(grad), TensorValue::Vector1D(s)) => {
             assert_eq!(s.len(), grad.len(), "Vector length mismatch in Pow backward");
@@ -70,7 +70,7 @@ pub fn backward(tensor: &Tensor, exponent: f64){
                 }
             }).collect();
 
-            x.data.borrow_mut().add_grad(TensorValue::Vector1D(dx_vec))
+            x.data.borrow_mut().add_grad(TensorValue::Vector1D(dx_vec))?
         }
         (TensorValue::Matrix2D(grad), TensorValue::Matrix2D(s)) => {
             let dx_mat = s.iter()
@@ -86,8 +86,9 @@ pub fn backward(tensor: &Tensor, exponent: f64){
                             }
                         }).collect()
                 }).collect();
-            x.data.borrow_mut().add_grad(TensorValue::Matrix2D(dx_mat))
+            x.data.borrow_mut().add_grad(TensorValue::Matrix2D(dx_mat))?;
         }
         _ => panic!("Invalid sigmoid gradient combination"),
     }
+    Ok(())
 }

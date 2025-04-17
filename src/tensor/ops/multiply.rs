@@ -1,24 +1,26 @@
+use anyhow::anyhow;
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn multiply(&self, other: &Tensor) -> Tensor {
+    pub fn multiply(&self, other: &Tensor) -> Result<Tensor> {
         let a = self.data.borrow();
         let b = other.data.borrow();
 
         let result_value = match (&a.value, &b.value) {
-            // 标量相乘
+
             (TensorValue::Scalar(a_val), TensorValue::Scalar(b_val)) => {
                 TensorValue::Scalar(a_val * b_val)
             }
-            // 向量相乘
+
             (TensorValue::Vector1D(a_vec), TensorValue::Vector1D(b_vec)) => {
                 assert_eq!(a_vec.len(), b_vec.len(), "Vector length mismatch");
                 TensorValue::Vector1D(
                     a_vec.iter().zip(b_vec).map(|(a, b)| a * b).collect()
                 )
             }
-            // 矩阵相乘（逐元素）
+
             (TensorValue::Matrix2D(a_mat), TensorValue::Matrix2D(b_mat)) => {
                 assert_eq!(a_mat.len(), b_mat.len(), "Matrix rows mismatch");
                 assert_eq!(a_mat[0].len(), b_mat[0].len(), "Matrix cols mismatch");
@@ -28,7 +30,7 @@ impl Tensor {
                     }).collect()
                 )
             }
-            // 标量广播
+
             (TensorValue::Scalar(s), TensorValue::Vector1D(v)) => {
                 TensorValue::Vector1D(v.iter().map(|x| s * x).collect())
             }
@@ -54,11 +56,11 @@ impl Tensor {
             res_data.operation = Operation::Multiply;
             res_data.dependencies = vec![self.clone(), other.clone()];
         }
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor){
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 2 {
@@ -76,14 +78,14 @@ pub fn backward(tensor: &Tensor){
 
     match (&data.grad, &a_val, &b_val) {
         (TensorValue::Scalar(grad), TensorValue::Scalar(a_val), TensorValue::Scalar(b_val)) => {
-            a.data.borrow_mut().add_grad_scalar(grad * b_val);
-            b.data.borrow_mut().add_grad_scalar(grad * a_val);
+            a.data.borrow_mut().add_grad_scalar(grad * b_val)?;
+            b.data.borrow_mut().add_grad_scalar(grad * a_val)?;
         }
         (TensorValue::Vector1D(grad), TensorValue::Vector1D(a_val), TensorValue::Vector1D(b_val)) => {
             let a_grad: Vec<_> = grad.iter().zip(b_val).map(|(g, b)| g * b).collect();
             let b_grad: Vec<_> = grad.iter().zip(a_val).map(|(g, a)| g * a).collect();
-            a.data.borrow_mut().add_grad(TensorValue::Vector1D(a_grad));
-            b.data.borrow_mut().add_grad(TensorValue::Vector1D(b_grad));
+            a.data.borrow_mut().add_grad(TensorValue::Vector1D(a_grad))?;
+            b.data.borrow_mut().add_grad(TensorValue::Vector1D(b_grad))?;
         }
         (TensorValue::Matrix2D(grad), TensorValue::Matrix2D(a_val), TensorValue::Matrix2D(b_val)) => {
             let mut a_grad = vec![vec![0.0; a_val[0].len()]; a_val.len()];
@@ -101,4 +103,5 @@ pub fn backward(tensor: &Tensor){
         }
         _ => panic!("Unsupported multiply backward combination"),
     }
+    Ok(())
 }

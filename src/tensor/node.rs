@@ -1,6 +1,7 @@
 use crate::tensor::operation::Operation;
 use crate::tensor::Tensor;
 use crate::tensor::value::TensorValue;
+use anyhow::Result;
 
 #[derive(Clone, Debug)]
 pub struct NodeData {
@@ -11,7 +12,7 @@ pub struct NodeData {
 }
 
 impl NodeData {
-    pub fn add_grad_scalar(&mut self, delta: f64) {
+    pub fn add_grad_scalar(&mut self, delta: f64) -> Result<()>{
         match &mut self.grad {
             TensorValue::Scalar(v) => *v += delta,
             TensorValue::Vector1D(vec) => vec.iter_mut().for_each(|x| *x += delta),
@@ -19,9 +20,10 @@ impl NodeData {
                 .for_each(|row| row.iter_mut().for_each(|x| *x += delta)),
             TensorValue::Tensor3D(_) => todo!()
         }
+        Ok(())
     }
 
-    pub fn add_grad(&mut self, delta: TensorValue) {
+    pub fn add_grad(&mut self, delta: TensorValue) -> Result<()>{
         match (&mut self.grad, &delta) {
             (TensorValue::Scalar(a), TensorValue::Scalar(b)) => *a += b,
             (TensorValue::Vector1D(a), TensorValue::Vector1D(b)) => {
@@ -54,5 +56,6 @@ impl NodeData {
                 panic!("Gradient shape mismatch")
             },
         }
+        Ok(())
     }
 }

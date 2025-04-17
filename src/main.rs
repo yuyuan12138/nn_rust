@@ -8,8 +8,9 @@ use nn::Optimizer;
 use nn::optimizer::SGD;
 use crate::loss_fn::bce_loss;
 use rayon::prelude::*;
+use anyhow::Result;
 
-fn test_xor(){
+fn test_xor() -> Result<()>{
     let layer1 = nn::layer::Linear::new(2, 4);
     let layer2 = nn::layer::Linear::new(4, 1);
     let inputs = vec![
@@ -33,11 +34,11 @@ fn test_xor(){
         for (_i, (input, target)) in inputs.iter().zip(&targets).enumerate() {
             optimizer.zero_grad(&layer1.parameters());
             optimizer.zero_grad(&layer2.parameters());
-            let hidden = layer1.forward(&input).tanh();
-            let outputs = layer2.forward(&hidden).sigmoid();
+            let hidden = layer1.forward(&input)?.tanh()?;
+            let outputs = layer2.forward(&hidden)?.sigmoid()?;
 
-            let loss = bce_loss(&outputs, &target);
-            loss.backward();
+            let loss = bce_loss(&outputs, &target)?;
+            loss.backward()?;
             optimizer.step(&layer1.parameters());
             optimizer.step(&layer2.parameters());
         }
@@ -46,18 +47,20 @@ fn test_xor(){
 
 
     for (_i, (input, _target)) in inputs.iter().zip(&targets).enumerate() {
-        let hidden = layer1.forward(&input).tanh();
-        let outputs = layer2.forward(&hidden).sigmoid();
+        let hidden = layer1.forward(&input)?.tanh()?;
+        let outputs = layer2.forward(&hidden)?.sigmoid()?;
         println!("Updated output: {:?}", outputs.data.borrow().value);
     }
 
+    Ok(())
 }
 
 
 
 
-fn main() {
-    test_xor();
+fn main() -> Result<()>{
+    test_xor()?;
+    Ok(())
 }
 
 

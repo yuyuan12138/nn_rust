@@ -1,9 +1,10 @@
 use crate::tensor::operation::Operation;
 use crate::tensor::utils::transpose;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn softmax(&self) -> Tensor {
+    pub fn softmax(&self) -> Result<Tensor> {
         let data = self.data.borrow();
         let result_value = match &data.value {
             TensorValue::Vector1D(v) => {
@@ -48,11 +49,11 @@ impl Tensor {
             res_data.dependencies = vec![self.clone()];
         }
 
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor) {
+pub fn backward(tensor: &Tensor) -> Result<()> {
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -111,19 +112,20 @@ pub fn backward(tensor: &Tensor) {
         }
         _ => panic!("Softmax gradient and output type mismatch"),
     };
-    input.data.borrow_mut().add_grad(dz);
+    input.data.borrow_mut().add_grad(dz)?;
+    Ok(())
 }
 
 #[test]
-fn softmax_backward_works() {
+fn softmax_backward_works() -> Result<()> {
     let input = Tensor::matrix(vec![
         vec![1.0, 1.0],
         vec![-1.0, 0.0]
     ]);
 
-    let output = input.softmax().sum();
+    let output = input.softmax()?.sum()?;
 
-    output.backward();
+    output.backward()?;
 
     let input_grad = match &input.data.borrow().grad {
         TensorValue::Matrix2D(m) => m.clone(),
@@ -146,4 +148,5 @@ fn softmax_backward_works() {
         );
         }
     }
+    Ok(())
 }

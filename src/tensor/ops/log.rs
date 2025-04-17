@@ -1,8 +1,9 @@
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn log(&self, value: f64) -> Tensor {
+    pub fn log(&self, value: f64) -> Result<Tensor> {
         let a = self.data.borrow();
 
         let result_value = match &a.value {
@@ -31,11 +32,11 @@ impl Tensor {
             res_data.dependencies = vec![self.clone()];
         }
 
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor, base: f64) {
+pub fn backward(tensor: &Tensor, base: f64) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 1 {
@@ -93,4 +94,6 @@ pub fn backward(tensor: &Tensor, base: f64) {
         }
         _ => panic!("Mismatched tensor types in Log backward"),
     }
+
+    Ok(())
 }

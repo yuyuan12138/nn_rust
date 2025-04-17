@@ -1,24 +1,25 @@
 use crate::tensor::operation::Operation;
 use super::super::{Tensor, TensorValue};
+use anyhow::Result;
 
 impl Tensor {
-    pub fn div(&self, other: &Tensor) -> Tensor {
+    pub fn div(&self, other: &Tensor) -> Result<Tensor> {
         let a = self.data.borrow();
         let b = other.data.borrow();
 
         let result_value = match (&a.value, &b.value) {
-            // 标量相除
+
             (TensorValue::Scalar(a_val), TensorValue::Scalar(b_val)) => {
                 TensorValue::Scalar(a_val / b_val)
             }
-            // 向量相除
+
             (TensorValue::Vector1D(a_vec), TensorValue::Vector1D(b_vec)) => {
                 assert_eq!(a_vec.len(), b_vec.len(), "Vector length mismatch");
                 TensorValue::Vector1D(
                     a_vec.iter().zip(b_vec).map(|(a, b)| a / b).collect()
                 )
             }
-            // 矩阵相除（逐元素）
+
             (TensorValue::Matrix2D(a_mat), TensorValue::Matrix2D(b_mat)) => {
                 assert_eq!(a_mat.len(), b_mat.len(), "Matrix rows mismatch");
                 assert_eq!(a_mat[0].len(), b_mat[0].len(), "Matrix cols mismatch");
@@ -28,7 +29,7 @@ impl Tensor {
                     }).collect()
                 )
             }
-            // 标量广播
+
             (TensorValue::Scalar(s), TensorValue::Vector1D(v)) => {
                 TensorValue::Vector1D(v.iter().map(|x| s / x).collect())
             }
@@ -54,11 +55,11 @@ impl Tensor {
             res_data.operation = Operation::Div;
             res_data.dependencies = vec![self.clone(), other.clone()];
         }
-        result
+        Ok(result)
     }
 }
 
-pub fn backward(tensor: &Tensor){
+pub fn backward(tensor: &Tensor) -> Result<()>{
     let data = tensor.data.borrow();
     let dependencies = &data.dependencies;
     if dependencies.len() != 2 {
@@ -82,5 +83,6 @@ pub fn backward(tensor: &Tensor){
         }
         // TODO: 其他类型处理类似，需要实现对应的梯度计算
         _ => unimplemented!("Div backward for non-scalar not implemented"),
-    }
+    };
+    Ok(())
 }
