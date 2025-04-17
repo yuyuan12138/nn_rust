@@ -42,7 +42,6 @@ fn test_xor() -> Result<()>{
             optimizer.step(&layer1.parameters());
             optimizer.step(&layer2.parameters());
         }
-        // println!()
     }
 
 
