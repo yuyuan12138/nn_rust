@@ -98,8 +98,8 @@ pub fn backward(tensor: &Tensor) -> Result<()>{
                 }
             }
 
-            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(a_grad));
-            b.data.borrow_mut().add_grad(TensorValue::Matrix2D(b_grad));
+            a.data.borrow_mut().add_grad(TensorValue::Matrix2D(a_grad))?;
+            b.data.borrow_mut().add_grad(TensorValue::Matrix2D(b_grad))?;
         }
         _ => panic!("Unsupported multiply backward combination"),
     }

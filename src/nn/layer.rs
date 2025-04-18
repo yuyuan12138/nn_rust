@@ -4,7 +4,7 @@ use super::Layer;
 use anyhow::Result;
 
 pub struct Linear {
-    pub params: Parameter2D,
+    params: Parameter2D,
 }
 
 impl Layer for Linear {

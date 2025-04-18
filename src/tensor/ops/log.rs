@@ -56,7 +56,7 @@ pub fn backward(tensor: &Tensor, base: f64) -> Result<()>{
             } else {
                 grad / (x_val * base.ln())
             };
-            x.data.borrow_mut().add_grad_scalar(dx);
+            x.data.borrow_mut().add_grad_scalar(dx)?;
         }
         (TensorValue::Vector1D(grad), TensorValue::Vector1D(x_vec)) => {
             assert_eq!(x_vec.len(), grad.len(), "Vector length mismatch in Log backward");
@@ -71,7 +71,7 @@ pub fn backward(tensor: &Tensor, base: f64) -> Result<()>{
                 })
                 .collect();
 
-            x.data.borrow_mut().add_grad(TensorValue::Vector1D(dx_vec));
+            x.data.borrow_mut().add_grad(TensorValue::Vector1D(dx_vec))?;
         }
         (TensorValue::Matrix2D(grad), TensorValue::Matrix2D(x_mat)) => {
             let dx_mat: Vec<Vec<f64>> = x_mat.iter()
@@ -90,7 +90,7 @@ pub fn backward(tensor: &Tensor, base: f64) -> Result<()>{
                 })
                 .collect();
 
-            x.data.borrow_mut().add_grad(TensorValue::Matrix2D(dx_mat));
+            x.data.borrow_mut().add_grad(TensorValue::Matrix2D(dx_mat))?;
         }
         _ => panic!("Mismatched tensor types in Log backward"),
     }

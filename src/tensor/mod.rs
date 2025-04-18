@@ -10,6 +10,7 @@ use std::rc::Rc;
 use crate::tensor::value::TensorValue;
 use crate::tensor::node::NodeData;
 use crate::tensor::operation::Operation;
+use anyhow::Result;
 
 #[derive(Clone, Debug)]
 pub struct Tensor {
@@ -51,6 +52,33 @@ impl Tensor {
 
     pub fn matrix(data: Vec<Vec<f64>>) -> Self {
         Self::from_value(TensorValue::Matrix2D(data))
+    }
+
+    pub fn to_scalar(&self) -> Result<f64> {
+        let data = self.data.borrow();
+        if let TensorValue::Scalar(s) = &data.value {
+            Ok(s.clone())
+        }else {
+            panic!("Tensor is not a Scalar")
+        }
+    }
+
+    pub fn to_vec(&self) -> Result<Vec<f64>> {
+        let data = self.data.borrow();
+        if let TensorValue::Vector1D(v) = &data.value {
+            Ok(v.clone())
+        } else {
+            panic!("Tensor is not a 1D vector")
+        }
+    }
+
+    pub fn to_matrix(&self) -> Result<Vec<Vec<f64>>> {
+        let data = self.data.borrow();
+        if let TensorValue::Matrix2D(v) = &data.value {
+            Ok(v.clone())
+        } else {
+            panic!("Tensor is not a 2D matrix")
+        }
     }
 
 
